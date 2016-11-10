@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:paddingLeft="@dimen/no_margin"
+    android:paddingRight="@dimen/no_margin"
+    android:paddingTop="@dimen/no_margin"
+    android:paddingBottom="@dimen/no_margin"
+    tools:context="com.codemine.talk2me.ChatActivity"
+    android:background="@color/gray">
+
+    <include
+        layout="@layout/chat_title"
+        android:id="@+id/chatTitle"/>
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:layout_below="@id/chatTitle"
+        android:background="@color/gray">
+
+        <ListView
+            android:id="@+id/chattingListView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:divider="@null"
+            android:layout_marginBottom="55dp"
+            android:background="@color/gray"
+            android:transcriptMode="normal">
+        </ListView>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_gravity="bottom"
+            android:background="@color/white">
+
+            <EditText
+                android:id="@+id/inputMsgText"
+                android:layout_weight="4"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="15dp"
+                android:layout_marginRight="15dp"
+                android:layout_gravity="center"
+                android:background="@color/white"/>
+
+            <Button
+                android:id="@+id/sendMsgButton"
+                android:text="发送"
+                android:layout_weight="1"
+                android:layout_width="0dp"
+                android:layout_height="50dp"
+                android:background="@color/gray"
+                android:textColor="@color/white"
+                android:layout_gravity="bottom"/>
+        </LinearLayout>
+
+    </FrameLayout>
+</RelativeLayout>

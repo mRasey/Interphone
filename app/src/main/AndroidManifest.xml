@@ -22,6 +22,7 @@
             android:name=".ChatActivity"
             android:windowSoftInputMode="adjustResize" />
         <activity android:name=".LoginActivity" />
+        <activity android:name=".VoiceActivity"></activity>
     </application>
 
 </manifest>

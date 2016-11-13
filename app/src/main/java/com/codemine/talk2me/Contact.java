@@ -14,4 +14,8 @@ public class Contact {
         this.time = time;
         this.headPortraitId = headPortraitId;
     }
+
+    public Contact(String name) {
+        this.name = name;
+    }
 }

@@ -1,5 +1,6 @@
 package com.codemine.talk2me;
 
+import android.content.Intent;
 import android.graphics.Color;
 import android.provider.CalendarContract;
 import android.support.v7.app.AppCompatActivity;
@@ -34,9 +35,11 @@ public class ChatActivity extends AppCompatActivity {
         final Button sendMsgButton = (Button) findViewById(R.id.sendMsgButton);
         final TextView backText = (TextView) findViewById(R.id.back_text);
         final TextView chattingWith = (TextView) findViewById(R.id.chattingWith);
+        final TextView jumpToVoiceText = (TextView) findViewById(R.id.jump_to_voice_text);
 
         chattingWith.setText(getIntent().getStringExtra("contactName"));
 
+        //点击返回主界面
         backText.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -44,11 +47,23 @@ public class ChatActivity extends AppCompatActivity {
             }
         });
 
+        //点击跳转到语音通话界面
+        jumpToVoiceText.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent();
+                intent.putExtra("contactName", getIntent().getStringExtra("contactName"));
+                intent.putExtra("ipAddr", getIntent().getStringExtra("ipAddr"));
+                intent.setClass(ChatActivity.this, VoiceActivity.class);
+                startActivity(intent);
+            }
+        });
+
         ChattingAdapter chattingAdapter = new ChattingAdapter(ChatActivity.this, R.layout.chatting_item, chattingInfos);
         chatList.setAdapter(chattingAdapter);
         chatList.setSelection(chattingInfos.size() - 1);
 
-
+        //点击发送信息
         inputMsgText.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {

@@ -29,7 +29,7 @@ public class MainActivity extends AppCompatActivity {
     ListView contractsList;
     List<Contact> contacts = new ArrayList<>();
     MySQLiteOpenHelper mySQLiteOpenHelper;
-    SQLiteDatabase sqLiteDatabase;
+//    SQLiteDatabase sqLiteDatabase;
     JSONObject contractJsonInfo;
     JSONObject callBackJson;
     Ip getIps = new Ip();
@@ -67,8 +67,8 @@ public class MainActivity extends AppCompatActivity {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        mySQLiteOpenHelper = new MySQLiteOpenHelper(this, "data.db", null, 1);//创建数据库
-        sqLiteDatabase = mySQLiteOpenHelper.getWritableDatabase();
+//        mySQLiteOpenHelper = new MySQLiteOpenHelper(this, "data.db", null, 1);//创建数据库
+//        sqLiteDatabase = mySQLiteOpenHelper.getWritableDatabase();
 
 
         try {
@@ -143,7 +143,7 @@ public class MainActivity extends AppCompatActivity {
         ContentValues values = new ContentValues();
         values.put("time", getCurrentTime());
         values.put("msg", msg);
-        sqLiteDatabase.update("CONTRACTS", values, "name=?", new String[]{name});
+//        sqLiteDatabase.update("CONTRACTS", values, "name=?", new String[]{name});
     }
 
     /**
@@ -154,7 +154,7 @@ public class MainActivity extends AppCompatActivity {
         values.put("name", name);
         values.put("time", getCurrentTime());
         values.put("msg", msg);
-        sqLiteDatabase.insert("CONTRACTS", null, values);
+//        sqLiteDatabase.insert("CONTRACTS", null, values);
     }
 
     /**
@@ -177,7 +177,7 @@ public class MainActivity extends AppCompatActivity {
         values.put("to", to);
         values.put("msg", msg);
         values.put("time", getCurrentTime());
-        sqLiteDatabase.insert("CHAT", null, values);
+//        sqLiteDatabase.insert("CHAT", null, values);
     }
 
 }

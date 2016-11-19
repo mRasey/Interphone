@@ -10,6 +10,8 @@ import java.net.UnknownHostException;
 
 public class VoiceActivity extends AppCompatActivity {
 
+    String myIp;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -22,12 +24,17 @@ public class VoiceActivity extends AppCompatActivity {
 
         String oppositeIp = getIntent().getStringExtra("ipAddr");//对方ip地址
         ((TextView)findViewById(R.id.opposite_ipAddr_text)).setText(oppositeIp);
-        try {
-            String myIp = InetAddress.getLocalHost().toString();//本机ip地址
-            ((TextView)findViewById(R.id.my_ipAddr_text)).setText(myIp);
-        } catch (UnknownHostException e) {
-            e.printStackTrace();
-        }
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    myIp = InetAddress.getLocalHost().toString();//本机ip地址
+                    ((TextView)findViewById(R.id.my_ipAddr_text)).setText(myIp.substring(10));
+                } catch (UnknownHostException e) {
+                    e.printStackTrace();
+                }
+            }
+        }).start();
 
         findViewById(R.id.back_text).setOnClickListener(new View.OnClickListener() {
             @Override

@@ -1,12 +1,18 @@
 package com.codemine.talk2me;
 
 import java.io.*;
+import java.net.Inet6Address;
 import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.net.SocketException;
 import java.util.*;
 
 public class Ip implements Runnable{
     public HashMap ping; //ping 后的结果集
     static ArrayList<String> result;
+    private static final String NETWORK_CARD = "eth0";//单网卡名称
+    private static final String NETWORK_CARD_BAND = "bond0";//绑定网卡名称
+
     public HashMap getPing(){ //用来得到ping后的结果集
         return ping;
     }
@@ -30,10 +36,13 @@ public class Ip implements Runnable{
 
     public Ip PingAll() throws Exception{
         //首先得到本机的IP，得到网段
-        InetAddress host = InetAddress.getLocalHost();
-        String hostAddress = host.getHostAddress();
-        int k=0;
-        k=hostAddress.lastIndexOf(".");
+//        InetAddress host = InetAddress.getLocalHost();
+//        String hostAddress = host.getHostAddress();
+//        getLocalIP();
+//        int k=0;
+        String hostAddress = getLocalIP();
+        System.err.println(hostAddress);
+        int k = hostAddress.lastIndexOf(".");
         String ss = hostAddress.substring(0,k+1);
         for(int i=1;i <=255;i++){ //对所有局域网Ip
             String iip=ss+i;
@@ -44,6 +53,37 @@ public class Ip implements Runnable{
             Thread.sleep(50);
         }
         return this;
+    }
+
+    public static String getLocalIP() {
+        String ip = "";
+        try {
+            Enumeration<NetworkInterface> e1 = NetworkInterface.getNetworkInterfaces();
+            while (e1.hasMoreElements()) {
+                NetworkInterface ni = e1.nextElement();
+
+                //单网卡或者绑定双网卡
+                if ((NETWORK_CARD.equals(ni.getName()))
+                        || (NETWORK_CARD_BAND.equals(ni.getName()))) {
+                    Enumeration<InetAddress> e2 = ni.getInetAddresses();
+                    while (e2.hasMoreElements()) {
+                        InetAddress ia = e2.nextElement();
+                        if (ia instanceof Inet6Address) {
+                            continue;
+                        }
+                        ip = ia.getHostAddress();
+                    }
+                    break;
+                }
+                else {
+                    continue;
+                }
+            }
+        }
+        catch (SocketException e) {
+            System.out.println("IpGetter.getLocalIP出现异常！异常信息：" + e.getMessage());
+        }
+        return ip;
     }
 
     @Override

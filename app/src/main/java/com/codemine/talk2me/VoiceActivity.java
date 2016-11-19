@@ -44,11 +44,11 @@ public class VoiceActivity extends AppCompatActivity {
             }
         });
 
-
-        findViewById(R.id.record_voice_button).setOnClickListener(new View.OnClickListener() {
+        //录音按钮添加长按事件
+        findViewById(R.id.record_voice_button).setOnLongClickListener(new View.OnLongClickListener() {
             @Override
-            public void onClick(View v) {
-
+            public boolean onLongClick(View v) {
+                return false;
             }
         });
     }

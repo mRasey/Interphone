@@ -37,10 +37,10 @@ public class Ip implements Runnable{
     public Ip PingAll() throws Exception{
         //首先得到本机的IP，得到网段
 //        InetAddress host = InetAddress.getLocalHost();
-//        String hostAddress = host.getHostAddress();
+        String hostAddress = InetAddress.getLocalHost().getHostAddress();
 //        getLocalIP();
 //        int k=0;
-        String hostAddress = getLocalIP();
+//        String hostAddress = getLocalIP();
         System.err.println(hostAddress);
         int k = hostAddress.lastIndexOf(".");
         String ss = hostAddress.substring(0,k+1);

@@ -25,133 +25,42 @@
             android:paddingTop="120dp"
             android:visibility="visible">
 
-
-            <EditText
-                android:id="@+id/account_edit"
-                android:layout_width="match_parent"
+            <TextView
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:hint="账号"/>
-
-            <EditText
-                android:id="@+id/password_edit"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="textPassword"
-                android:hint="密码"/>
+                android:textSize="30dp"
+                android:layout_gravity="center"
+                android:text="请选择通信模式"
+                android:textColor="@color/black"/>
 
             <LinearLayout
                 android:id="@+id/log_layout"
+                android:layout_marginTop="50dp"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:visibility="visible">
 
                 <Button
-                    android:id="@+id/login_button"
+                    android:id="@+id/WIFI_button"
                     android:layout_weight="1"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="登陆"
+                    android:text="WIFI"
                     android:background="@color/orange"/>
 
                 <Button
-                    android:id="@+id/register_button"
+                    android:id="@+id/bluetooth_button"
                     android:layout_weight="1"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="注册"
-                    android:background="@color/green"/>
-
-            </LinearLayout>
-
-            <Button
-                android:id="@+id/logging_button"
-                android:layout_gravity="center"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="登录中..."
-                android:background="@color/green"
-                android:visibility="gone"/>
-
-
-
-
-        </LinearLayout>
-
-        <LinearLayout
-            android:id="@+id/register_layout"
-            android:visibility="gone"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:orientation="vertical"
-            android:paddingLeft="30dp"
-            android:paddingRight="30dp"
-            android:paddingTop="100dp">
-
-            <EditText
-                android:id="@+id/register_account_edit"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="账号"/>
-
-            <EditText
-                android:id="@+id/register_password_edit"
-                android:inputType="textPassword"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="密码"/>
-
-            <EditText
-                android:id="@+id/register_confirm_password_edit"
-                android:inputType="textPassword"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="确认密码"/>
-
-            <EditText
-                android:id="@+id/register_email_edit"
-                android:inputType="textEmailAddress"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="邮箱" />
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal">
-
-                <Button
-                    android:id="@+id/register_back_button"
-                    android:layout_weight="1"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="返回"
-                    android:background="@color/orange"/>
-
-                <Button
-                    android:id="@+id/register_register_button"
-                    android:layout_weight="1"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="注册"
+                    android:text="蓝牙"
                     android:background="@color/green"/>
 
             </LinearLayout>
 
         </LinearLayout>
 
-        <LinearLayout
-            android:id="@+id/progress_layout"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:visibility="gone">
-
-            <ProgressBar
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center"/>
-
-        </LinearLayout>
     </FrameLayout>
 
 </RelativeLayout>

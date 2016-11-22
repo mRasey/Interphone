@@ -1,9 +1,12 @@
 package com.codemine.talk2me;
 
 import android.content.ContentValues;
+import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.net.wifi.WifiInfo;
+import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -11,6 +14,8 @@ import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ListView;
+import android.widget.SearchView;
+import android.widget.TextView;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -21,6 +26,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
@@ -28,11 +34,15 @@ public class MainActivity extends AppCompatActivity {
     final int UPDATE_LIST = 1;
     ListView contractsList;
     List<Contact> contacts = new ArrayList<>();
+    SearchView searchView;
+    WifiManager wifiManager;
+    TextView localIPText;
+
     MySQLiteOpenHelper mySQLiteOpenHelper;
 //    SQLiteDatabase sqLiteDatabase;
     JSONObject contractJsonInfo;
     JSONObject callBackJson;
-    Ip getIps = new Ip();
+    Ip getIps;
     int oldResultSize = 0;
     int nowResultSize = 0;
 
@@ -62,6 +72,12 @@ public class MainActivity extends AppCompatActivity {
             getSupportActionBar().hide();
         setContentView(R.layout.activity_main);
 
+        wifiManager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
+        getIps = new Ip(wifiManager);
+
+        localIPText = (TextView) findViewById(R.id.local_ip_text);
+        localIPText.setText("本机IP: " + getLocalIp());
+
         try {
             new Thread(getIps).start();//获取局域网内所有IP地址
         } catch (Exception e) {
@@ -76,6 +92,30 @@ public class MainActivity extends AppCompatActivity {
         } catch (Exception e) {
             e.printStackTrace();
         }
+
+        searchView = (SearchView) findViewById(R.id.search_view);//搜索框
+        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String query) {
+                Intent intent = new Intent();
+                intent.setClass(MainActivity.this, ChatActivity.class);
+                intent.putExtra("contactName", query);
+                intent.putExtra("contactHeadPortraitId", R.id.headPortrait);
+                intent.putExtra("ipAddr", query);
+                startActivity(intent);
+                return true;
+            }
+
+            @Override
+            public boolean onQueryTextChange(String newText) {
+                if(!newText.equals(""))
+                    contractsList.setFilterText(newText);
+                else
+                    contractsList.clearTextFilter();
+                return false;
+            }
+        });
+
         contractsList = (ListView) findViewById(R.id.contactsList);
         final ContactsAdapter contactsAdapter = new ContactsAdapter(MainActivity.this, R.layout.contact_item, contacts);
         contractsList.setAdapter(contactsAdapter);
@@ -122,6 +162,8 @@ public class MainActivity extends AppCompatActivity {
 //        contacts.add(new Contact("billy", "hahaha", "now", R.drawable.head));
 //        contacts.add(new Contact("wang", "2333", "now", R.drawable.head));
 //        getIps.PingAll().run();
+//        HashSet<String> hashSet = new HashSet<>();
+//        hashSet.addAll(getIps.result);
         for(String ipAddr : getIps.result) {
             contacts.add(new Contact(ipAddr, "", "", R.drawable.head));
         }
@@ -178,6 +220,25 @@ public class MainActivity extends AppCompatActivity {
         values.put("msg", msg);
         values.put("time", getCurrentTime());
 //        sqLiteDatabase.insert("CHAT", null, values);
+    }
+
+    public String getLocalIp() {
+//        WifiManager wifiManager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
+        //判断wifi是否开启
+        if (!wifiManager.isWifiEnabled()) {
+            wifiManager.setWifiEnabled(true);
+        }
+        WifiInfo wifiInfo = wifiManager.getConnectionInfo();
+        int ipAddress = wifiInfo.getIpAddress();
+        return intToIp(ipAddress);
+    }
+
+    private String intToIp(int i) {
+
+        return (i & 0xFF ) + "." +
+                ((i >> 8 ) & 0xFF) + "." +
+                ((i >> 16 ) & 0xFF) + "." +
+                ( i >> 24 & 0xFF) ;
     }
 
 }

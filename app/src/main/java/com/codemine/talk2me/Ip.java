@@ -1,5 +1,10 @@
 package com.codemine.talk2me;
 
+import android.content.Context;
+import android.net.wifi.WifiInfo;
+import android.net.wifi.WifiManager;
+import android.widget.EditText;
+
 import java.io.*;
 import java.net.Inet6Address;
 import java.net.InetAddress;
@@ -12,6 +17,13 @@ public class Ip implements Runnable{
     static ArrayList<String> result;
     private static final String NETWORK_CARD = "eth0";//单网卡名称
     private static final String NETWORK_CARD_BAND = "bond0";//绑定网卡名称
+    WifiManager wifiManager;
+
+    public Ip(WifiManager wifiManager) {
+        ping = new HashMap();
+        result = new ArrayList<>();
+        this.wifiManager = wifiManager;
+    }
 
     public HashMap getPing(){ //用来得到ping后的结果集
         return ping;
@@ -37,10 +49,11 @@ public class Ip implements Runnable{
     public Ip PingAll() throws Exception{
         //首先得到本机的IP，得到网段
 //        InetAddress host = InetAddress.getLocalHost();
-        String hostAddress = InetAddress.getLocalHost().getHostAddress();
+//        String hostAddress = InetAddress.getLocalHost().getHostAddress();
 //        getLocalIP();
 //        int k=0;
 //        String hostAddress = getLocalIP();
+        String hostAddress = getIp();
         System.err.println(hostAddress);
         int k = hostAddress.lastIndexOf(".");
         String ss = hostAddress.substring(0,k+1);
@@ -53,6 +66,25 @@ public class Ip implements Runnable{
             Thread.sleep(50);
         }
         return this;
+    }
+
+    public String getIp() {
+//        WifiManager wifiManager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
+        //判断wifi是否开启
+        if (!wifiManager.isWifiEnabled()) {
+            wifiManager.setWifiEnabled(true);
+        }
+        WifiInfo wifiInfo = wifiManager.getConnectionInfo();
+        int ipAddress = wifiInfo.getIpAddress();
+        return intToIp(ipAddress);
+    }
+
+    private String intToIp(int i) {
+
+        return (i & 0xFF ) + "." +
+                ((i >> 8 ) & 0xFF) + "." +
+                ((i >> 16 ) & 0xFF) + "." +
+                ( i >> 24 & 0xFF) ;
     }
 
     public static String getLocalIP() {
@@ -89,8 +121,7 @@ public class Ip implements Runnable{
     @Override
     public void run() {
         try {
-            Ip ip = new Ip();
-            ip.PingAll();
+            PingAll();
 //            java.util.Set entries = ping.entrySet();
 //            Iterator iter = entries.iterator();
 
@@ -140,7 +171,8 @@ public class Ip implements Runnable{
                 }
                 else{
                     ping.put(ip,"true");
-                    result.add(ip);
+                    if(!result.contains(ip))
+                        result.add(ip);
                     System.out.println("inresult: " + result.size());
                 }
 //线程结束

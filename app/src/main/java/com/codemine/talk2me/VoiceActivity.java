@@ -21,6 +21,7 @@ import java.net.UnknownHostException;
 public class VoiceActivity extends AppCompatActivity {
 
     String myIp;
+    String oppositeIp;
     Button recordButton;
 
     //audio
@@ -41,32 +42,40 @@ public class VoiceActivity extends AppCompatActivity {
     boolean isStop = false;
 
     private void startSend(){
-        audioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC,
-                frequency, channelConfiguration,
-                audioEncoding, bufferSize);
-        System.out.println("233333:  " + audioRecord);
-        audioRecord.startRecording();
-        String ip = "127.0.0.1";
-        try {
-            DatagramSocket datagramSocket = new DatagramSocket();
-            byte[] record_buffer = new byte[bufferSize];
-            InetAddress address = InetAddress.getByName(ip);
-            DatagramPacket datagramPacket = new DatagramPacket(
-                    record_buffer,
-                    record_buffer.length,
-                    address,
-                    port);
-            while(!isStop){
-                audioRecord.read(record_buffer, 0, bufferSize);
-                datagramSocket.send(datagramPacket);
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                audioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC,
+                        frequency, channelConfiguration,
+                        audioEncoding, bufferSize);
+                audioRecord.startRecording();
+//                String ip = "127.0.0.1";
+                System.out.println("record success");
+                try {
+                    DatagramSocket datagramSocket = new DatagramSocket();
+                    System.out.println("send socket success");
+                    byte[] record_buffer = new byte[bufferSize];
+                    InetAddress address = InetAddress.getByName(oppositeIp);
+                    DatagramPacket datagramPacket = new DatagramPacket(
+                            record_buffer,
+                            record_buffer.length,
+                            address,
+                            port);
+                    System.out.println("send network success");
+                    while(!isStop){
+                        audioRecord.read(record_buffer, 0, bufferSize);
+                        datagramSocket.send(datagramPacket);
+                        System.out.println("send success");
+                    }
+                    datagramSocket.close();
+                    audioRecord.stop();
+                    audioRecord.release();
+                    isStop = false;
+                }catch (Exception e){
+                    e.printStackTrace();
+                }
             }
-            datagramSocket.close();
-            audioRecord.stop();
-            audioRecord.release();
-            isStop = false;
-        }catch (Exception e){
-            //TODO: handle exception
-        }
+        }).start();
     }
 
     private void stopSend(){
@@ -83,8 +92,9 @@ public class VoiceActivity extends AppCompatActivity {
         ((TextView)findViewById(R.id.jump_to_voice_text)).setText("");
         ((TextView)findViewById(R.id.chattingWith)).setText(getIntent().getStringExtra("contactName"));
 
-        String oppositeIp = getIntent().getStringExtra("ipAddr");//对方ip地址
+        oppositeIp = getIntent().getStringExtra("ipAddr");//对方ip地址
         ((TextView)findViewById(R.id.opposite_ipAddr_text)).setText(oppositeIp);
+
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -96,24 +106,28 @@ public class VoiceActivity extends AppCompatActivity {
                 }
             }
         }).start();
+
         new Thread(new Runnable() {
             @Override
             public void run() {
                 //receive
+                System.out.println("receive start");
                 try {
                     DatagramSocket datagramSocket = new DatagramSocket(port);
                     byte[] record_buffer = new byte[bufferSize];
                     DatagramPacket datagramPacket = new DatagramPacket(
                             record_buffer,record_buffer.length);
+                    System.out.println("receive network success");
 
                     while(true){
                         datagramSocket.receive(datagramPacket);
+                        System.out.println("666666666666");
                         audioTrack.play();
                         audioTrack.write(record_buffer,0,bufferSize);
                         audioTrack.stop();
                     }
                 }catch (Exception e){
-                    //TODO: handle exception
+                    e.printStackTrace();
                 }
             }
         },"receiver").start();

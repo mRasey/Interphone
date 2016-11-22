@@ -2,6 +2,8 @@ package com.codemine.talk2me;
 
 import android.content.Intent;
 import android.graphics.Color;
+import android.os.Handler;
+import android.os.Message;
 import android.provider.CalendarContract;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -14,11 +16,43 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import org.json.JSONObject;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.util.ArrayList;
+
+import static com.codemine.talk2me.MESSAGE.*;
 
 public class ChatActivity extends AppCompatActivity {
 
     ArrayList<ChattingInfo> chattingInfos = new ArrayList<>();
+    ListView chatList;
+    EditText inputMsgText;
+    Button sendMsgButton;
+    TextView backText;
+    TextView chattingWith;
+    TextView jumpToVoiceText;
+    String oppositeIp;
+
+    Handler handler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            switch (msg.what) {
+                case NEW_MSG:
+                    handler.removeMessages(NEW_MSG);
+                    ChattingAdapter chattingAdapter = new ChattingAdapter(ChatActivity.this, R.layout.chatting_item, chattingInfos);
+                    chatList.setAdapter(chattingAdapter);
+                    chatList.setSelection(chattingInfos.size() - 1);
+                    break;
+                default:
+                    break;
+            }
+        }
+    };
 
 
     @Override
@@ -30,14 +64,15 @@ public class ChatActivity extends AppCompatActivity {
 
         initChattingInfo();
 
-        final ListView chatList = (ListView) findViewById(R.id.chattingListView);
-        final EditText inputMsgText = (EditText) findViewById(R.id.inputMsgText);
-        final Button sendMsgButton = (Button) findViewById(R.id.sendMsgButton);
-        final TextView backText = (TextView) findViewById(R.id.back_text);
-        final TextView chattingWith = (TextView) findViewById(R.id.chattingWith);
-        final TextView jumpToVoiceText = (TextView) findViewById(R.id.jump_to_voice_text);
+        chatList = (ListView) findViewById(R.id.chattingListView);
+        inputMsgText = (EditText) findViewById(R.id.inputMsgText);
+        sendMsgButton = (Button) findViewById(R.id.sendMsgButton);
+        backText = (TextView) findViewById(R.id.back_text);
+        chattingWith = (TextView) findViewById(R.id.chattingWith);
+        jumpToVoiceText = (TextView) findViewById(R.id.jump_to_voice_text);
 
         chattingWith.setText(getIntent().getStringExtra("contactName"));
+        oppositeIp = getIntent().getStringExtra("contactName");
 
         //点击返回主界面
         backText.setOnClickListener(new View.OnClickListener() {
@@ -63,7 +98,7 @@ public class ChatActivity extends AppCompatActivity {
         chatList.setAdapter(chattingAdapter);
         chatList.setSelection(chattingInfos.size() - 1);
 
-        //点击发送信息
+        //输入信息
         inputMsgText.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
@@ -84,24 +119,51 @@ public class ChatActivity extends AppCompatActivity {
             }
         });
 
+        //点击发送消息
         sendMsgButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 if(!inputMsgText.getText().toString().equals("")) {
-                    chattingInfos.add(new ChattingInfo(R.drawable.head, inputMsgText.getText().toString(), MsgType.OWN, ""));
+                    String msg = inputMsgText.getText().toString();
+                    chattingInfos.add(new ChattingInfo(R.drawable.head, msg, MsgType.OWN, ""));
                     ChattingAdapter chattingAdapter = new ChattingAdapter(ChatActivity.this, R.layout.chatting_item, chattingInfos);
                     chatList.setAdapter(chattingAdapter);
                     chatList.setSelection(chattingInfos.size() - 1);
+                    try {
+                        JSONObject jsonObject = new JSONObject();
+                        jsonObject.put("info", msg);
+                        new Thread(new SocketOperation(jsonObject, oppositeIp)).start();
+                    }
+                    catch (Exception e) {
+                        e.printStackTrace();
+                    }
                 }
                 inputMsgText.getText().clear();
             }
         });
+
+        //循环接收消息
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    while (true) {
+                        ServerSocket serverSocket = new ServerSocket(2345);
+                        Socket socket = serverSocket.accept();
+                        BufferedReader bfr = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                        chattingInfos.add(new ChattingInfo(R.drawable.head, bfr.readLine(), MsgType.OTHER, ""));
+                        MESSAGE.sendNewMessage(handler, NEW_MSG);
+                        serverSocket.close();
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+            }
+        }).start();
     }
 
     public void initChattingInfo() {
-//        chattingInfos.add(new ChattingInfo(R.id.other_layout, R.id.own_layout, R.drawable.head,
-//                R.drawable.head, "hellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohello", "", MsgType.OTHER, "now"));
-//        chattingInfos.add(new ChattingInfo(R.id.other_layout, R.id.own_layout, R.drawable.head,
-//                R.drawable.head, "", "worldworldworldworldworldworldworldworldworldworldworldworldworldworldworldworldworldworldworldworldworldworldworldworldworldworldworldworldworldworldworldworldworldworldworldworldworldworldworldworldworldworldworldworldworldworldworldworldworldworldworldworldworldworldworldworldworldworldworldworldworldworldworldworldworldworld", MsgType.OWN, "now"));
+
     }
 }

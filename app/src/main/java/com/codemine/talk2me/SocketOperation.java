@@ -18,6 +18,7 @@ public class SocketOperation implements Runnable{
     private StringBuilder dealResult;
     private JSONObject inputJson;
     private JSONObject callBackJson;
+    private String ip = "";
 
     public SocketOperation(JSONObject jsonObject, StringBuilder dealResult) {
         this.inputJson = jsonObject;
@@ -33,6 +34,11 @@ public class SocketOperation implements Runnable{
         this.inputJson = inputJson;
     }
 
+    public SocketOperation(JSONObject jsonObject, String oppositeIp) {
+        this.inputJson = jsonObject;
+        this.ip = oppositeIp;
+    }
+
     public void setDealResult(StringBuilder dealResult) {
         this.dealResult = dealResult;
     }
@@ -45,19 +51,24 @@ public class SocketOperation implements Runnable{
         this.callBackJson = callBackJson;
     }
 
-    public String sendMsg() throws IOException {
-        Socket socket = new Socket("192.168.31.132", 2333);
-        String ipAddress = socket.getInetAddress().toString();
-        BufferedWriter bfw = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
-        BufferedReader bfr = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-        bfw.write(inputJson.toString() + "\n");
-        bfw.flush();
-        dealResult.append(bfr.readLine());
-        return dealResult.toString();
+    public void sendMsg() throws IOException {
+        try {
+            Socket socket = new Socket(ip, 2345);
+            BufferedWriter bfw = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
+            BufferedReader bfr = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            bfw.write(inputJson.getString("info") + "\n");
+            bfw.flush();
+            socket.close();
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
+//        dealResult.append(bfr.readLine());
+//        return dealResult.toString();
     }
 
     public JSONObject getMsg() throws IOException, JSONException {
-        Socket socket = new Socket("192.168.31.132", 2333);
+        Socket socket = new Socket(ip, 2345);
         String ipAddress = socket.getInetAddress().toString();
         BufferedWriter bfw = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
         BufferedReader bfr = new BufferedReader(new InputStreamReader(socket.getInputStream()));

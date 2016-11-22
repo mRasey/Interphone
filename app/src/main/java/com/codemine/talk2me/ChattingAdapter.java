@@ -45,7 +45,7 @@ public class ChattingAdapter extends ArrayAdapter<ChattingInfo>{
             chatViewHolder.otherLinearLayout.setVisibility(View.VISIBLE);
 
             chatViewHolder.otherHeadPortrait.setImageResource(chattingInfo.ownHeadPortraitId);
-            chatViewHolder.otherDialogMsg.setText(chattingInfo.otherDialogMsg);
+            chatViewHolder.otherDialogMsg.setText(chattingInfo.ownDialogMsg);
         }
         else if(chattingInfo.msgType == MsgType.OWN){
             chatViewHolder.ownLinearLayout.setVisibility(View.VISIBLE);

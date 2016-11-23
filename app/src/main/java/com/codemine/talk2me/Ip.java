@@ -13,19 +13,19 @@ import java.net.SocketException;
 import java.util.*;
 
 public class Ip implements Runnable{
-    public HashMap ping; //ping 后的结果集
+    public static HashSet<String> ping; //ping 后的结果集
     static ArrayList<String> result;
     private static final String NETWORK_CARD = "eth0";//单网卡名称
     private static final String NETWORK_CARD_BAND = "bond0";//绑定网卡名称
     WifiManager wifiManager;
 
     public Ip(WifiManager wifiManager) {
-        ping = new HashMap();
+        ping = new HashSet<>();
         result = new ArrayList<>();
         this.wifiManager = wifiManager;
     }
 
-    public HashMap getPing(){ //用来得到ping后的结果集
+    public HashSet<String> getPing(){ //用来得到ping后的结果集
         return ping;
     }
 
@@ -33,7 +33,7 @@ public class Ip implements Runnable{
     static int threadCount = 0;
 
     public Ip() {
-        ping = new HashMap();
+        ping = new HashSet<>();
         result = new ArrayList<>();
     }
 
@@ -164,13 +164,14 @@ public class Ip implements Runnable{
                     System.out.println(ip);
                     return;
                 }
-                String reg=".*timeout.*";
+                String reg=".*Unreachable.*";
+                System.out.println(line + "lkadsflksdaflkj");
                 if (line.matches(reg))
                 {
-                    ping.put(ip,"false");
+//                    ping.put(ip,"false");
                 }
                 else{
-                    ping.put(ip,"true");
+                    ping.add(ip);
                     if(!result.contains(ip))
                         result.add(ip);
                     System.out.println("inresult: " + result.size());

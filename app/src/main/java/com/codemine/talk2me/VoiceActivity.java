@@ -1,5 +1,6 @@
 package com.codemine.talk2me;
 
+import android.graphics.Color;
 import android.media.AudioManager;
 import android.media.AudioRecord;
 import android.media.AudioTrack;
@@ -12,23 +13,36 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 
+import java.io.BufferedReader;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.FileDescriptor;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.UnknownHostException;
+
+import static com.codemine.talk2me.MESSAGE.NEW_MSG;
 
 public class VoiceActivity extends AppCompatActivity {
 
     String myIp;
     String oppositeIp;
     Button recordButton;
+    TextView connect_text;
 
     //audio
     int frequency = 10000;
     int channelConfiguration = AudioFormat.CHANNEL_IN_DEFAULT;
     int audioEncoding = AudioFormat.ENCODING_PCM_16BIT;
-    int bufferSize = AudioRecord.getMinBufferSize(frequency, channelConfiguration,  audioEncoding);
+//    int bufferSize = AudioRecord.getMinBufferSize(frequency, channelConfiguration,  audioEncoding);
+    int bufferSize = 128;
     AudioRecord audioRecord;
     AudioTrack audioTrack = new AudioTrack(
             AudioManager.STREAM_MUSIC,
@@ -41,6 +55,30 @@ public class VoiceActivity extends AppCompatActivity {
     int port = 2333;
     boolean isStop = false;
 
+    private class receiver implements Runnable{
+        @Override
+        public void run() {
+            try {
+                while (true) {
+                    byte[] bytes = new byte[bufferSize];
+                    ServerSocket serverSocket = new ServerSocket(port);
+                    Socket socket = serverSocket.accept();
+                    DataInputStream dis = new DataInputStream(socket.getInputStream());
+                    while(dis.read(bytes) != -1) {
+                        audioTrack.play();
+                        audioTrack.write(bytes,0,bufferSize);
+                        audioTrack.stop();
+                    }
+                    serverSocket.close();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+                new Thread(new receiver()).start();
+            }
+
+        }
+    }
+
     private void startSend(){
         new Thread(new Runnable() {
             @Override
@@ -50,10 +88,11 @@ public class VoiceActivity extends AppCompatActivity {
                         audioEncoding, bufferSize);
                 audioRecord.startRecording();
 //                String ip = "127.0.0.1";
-                System.out.println("record success");
                 try {
-                    DatagramSocket datagramSocket = new DatagramSocket();
-                    System.out.println("send socket success");
+                    Socket socket = new Socket(oppositeIp, port);
+                    DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
+
+//                    DatagramSocket datagramSocket = new DatagramSocket();
                     byte[] record_buffer = new byte[bufferSize];
                     InetAddress address = InetAddress.getByName(oppositeIp);
                     DatagramPacket datagramPacket = new DatagramPacket(
@@ -61,16 +100,17 @@ public class VoiceActivity extends AppCompatActivity {
                             record_buffer.length,
                             address,
                             port);
-                    System.out.println("send network success");
                     while(!isStop){
                         audioRecord.read(record_buffer, 0, bufferSize);
-                        datagramSocket.send(datagramPacket);
-                        System.out.println("send success");
+                        dos.write(record_buffer);
+                        dos.flush();
+//                        datagramSocket.send(datagramPacket);
                     }
-                    datagramSocket.close();
+//                    datagramSocket.close();
                     audioRecord.stop();
                     audioRecord.release();
                     isStop = false;
+                    socket.close();
                 }catch (Exception e){
                     e.printStackTrace();
                 }
@@ -92,8 +132,13 @@ public class VoiceActivity extends AppCompatActivity {
         ((TextView)findViewById(R.id.jump_to_voice_text)).setText("");
         ((TextView)findViewById(R.id.chattingWith)).setText(getIntent().getStringExtra("contactName"));
 
+        connect_text = (TextView) findViewById(R.id.bluetoothConnect);
+        connect_text.setVisibility(View.GONE);
+
         oppositeIp = getIntent().getStringExtra("ipAddr");//对方ip地址
         ((TextView)findViewById(R.id.opposite_ipAddr_text)).setText(oppositeIp);
+
+        System.out.println("buffersize : "  + bufferSize);
 
         new Thread(new Runnable() {
             @Override
@@ -107,30 +152,33 @@ public class VoiceActivity extends AppCompatActivity {
             }
         }).start();
 
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                //receive
-                System.out.println("receive start");
-                try {
-                    DatagramSocket datagramSocket = new DatagramSocket(port);
-                    byte[] record_buffer = new byte[bufferSize];
-                    DatagramPacket datagramPacket = new DatagramPacket(
-                            record_buffer,record_buffer.length);
-                    System.out.println("receive network success");
+//        new Thread(new Runnable() {
+//            @Override
+//            public void run() {
+//                //receive
+//                System.out.println("receive start");
+//                try {
+//                    DatagramSocket datagramSocket = new DatagramSocket(port);
+//                    byte[] record_buffer = new byte[bufferSize];
+//                    DatagramPacket datagramPacket = new DatagramPacket(
+//                            record_buffer,record_buffer.length);
+//                    System.out.println("receive network success");
+//
+//                    while(true){
+//                        datagramSocket.receive(datagramPacket);
+//                        System.out.println("666666666666");
+//                        audioTrack.play();
+//                        audioTrack.write(record_buffer,0,bufferSize);
+//                        audioTrack.stop();
+//                    }
+//                }catch (Exception e){
+//                    e.printStackTrace();
+//                }
+//            }
+//        },"receiver").start();
 
-                    while(true){
-                        datagramSocket.receive(datagramPacket);
-                        System.out.println("666666666666");
-                        audioTrack.play();
-                        audioTrack.write(record_buffer,0,bufferSize);
-                        audioTrack.stop();
-                    }
-                }catch (Exception e){
-                    e.printStackTrace();
-                }
-            }
-        },"receiver").start();
+        //循环接收消息
+        new Thread(new receiver()).start();
 
         findViewById(R.id.back_text).setOnClickListener(new View.OnClickListener() {
             @Override
@@ -146,9 +194,11 @@ public class VoiceActivity extends AppCompatActivity {
             public boolean onTouch(View view, MotionEvent motionEvent) {
                 switch (motionEvent.getAction()) {
                     case MotionEvent.ACTION_DOWN:
+                        recordButton.setBackgroundColor(Color.parseColor("#4EEE94"));
                         startSend();
                         break;
                     case MotionEvent.ACTION_UP:
+                        recordButton.setBackgroundColor(Color.parseColor("#EBEBEB"));
                         stopSend();
                         break;
                 }

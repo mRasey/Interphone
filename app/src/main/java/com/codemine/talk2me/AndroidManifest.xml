@@ -31,7 +31,10 @@
             android:windowSoftInputMode="adjustResize" />
         <activity android:name=".LoginActivity" />
         <activity android:name=".VoiceActivity" />
-        <activity android:name=".BluetoothActivity"></activity>
+        <activity android:name=".BluetoothActivity"/>
+        <activity android:name=".BluetoothChatActivity"></activity>
+        <activity android:name=".BluetoothVoiceActivity"/>
+
     </application>
 
 </manifest>

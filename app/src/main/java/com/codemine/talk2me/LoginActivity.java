@@ -49,7 +49,7 @@ public class LoginActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 Intent intent = new Intent();
-                intent.setClass(LoginActivity.this, MainActivity.class);
+                intent.setClass(LoginActivity.this, BluetoothActivity.class);
                 intent.putExtra("mod", "bluetooth");
                 startActivity(intent);
                 finish();

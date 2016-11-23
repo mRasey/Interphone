@@ -2,6 +2,7 @@ package com.codemine.talk2me;
 
 import android.content.Intent;
 import android.graphics.Color;
+import android.hardware.Sensor;
 import android.os.Handler;
 import android.os.Message;
 import android.provider.CalendarContract;
@@ -19,8 +20,10 @@ import android.widget.Toast;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
@@ -37,6 +40,10 @@ public class ChatActivity extends AppCompatActivity {
     TextView chattingWith;
     TextView jumpToVoiceText;
     String oppositeIp;
+    ServerSocket serverSocket;
+    Socket senderSocket;
+    Thread receiverThread;
+    Thread senderThread;
 
     Handler handler = new Handler() {
         @Override
@@ -78,6 +85,18 @@ public class ChatActivity extends AppCompatActivity {
         backText.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                try {
+                    senderThread.interrupt();
+                    receiverThread.interrupt();
+                    senderThread.stop();
+                    receiverThread.stop();
+                    senderSocket.close();
+                    senderSocket.shutdownInput();
+                    senderSocket.shutdownOutput();
+                    serverSocket.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
                 finish();
             }
         });
@@ -132,7 +151,8 @@ public class ChatActivity extends AppCompatActivity {
                     try {
                         JSONObject jsonObject = new JSONObject();
                         jsonObject.put("info", msg);
-                        new Thread(new SocketOperation(jsonObject, oppositeIp)).start();
+                        senderThread = new Thread(new Sender(jsonObject));
+                        senderThread.start();
                     }
                     catch (Exception e) {
                         e.printStackTrace();
@@ -143,24 +163,91 @@ public class ChatActivity extends AppCompatActivity {
         });
 
         //循环接收消息
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    while (true) {
-                        ServerSocket serverSocket = new ServerSocket(2345);
-                        Socket socket = serverSocket.accept();
-                        BufferedReader bfr = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                        chattingInfos.add(new ChattingInfo(R.drawable.head, bfr.readLine(), MsgType.OTHER, ""));
-                        MESSAGE.sendNewMessage(handler, NEW_MSG);
-                        serverSocket.close();
-                    }
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
 
+        Receiver receiver = new Receiver();
+        receiverThread = new Thread(receiver);
+        receiverThread.start();
+//        new Thread(new Runnable() {
+//            @Override
+//            public void run() {
+//                try {
+//                    while (true) {
+//                        ServerSocket serverSocket = new ServerSocket(2345);
+//                        Socket socket = serverSocket.accept();
+//                        BufferedReader bfr = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+//                        chattingInfos.add(new ChattingInfo(R.drawable.head, bfr.readLine(), MsgType.OTHER, ""));
+//                        MESSAGE.sendNewMessage(handler, NEW_MSG);
+//                        serverSocket.close();
+//                    }
+//                } catch (IOException e) {
+//                    e.printStackTrace();
+//                }
+//
+//            }
+//        }).start();
+    }
+
+
+    private class Receiver implements Runnable {
+
+        @Override
+        public void run() {
+            try {
+                while (true) {
+                    serverSocket = new ServerSocket(2345);
+                    Socket socket = serverSocket.accept();
+                    BufferedReader bfr = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                    chattingInfos.add(new ChattingInfo(R.drawable.head, bfr.readLine(), MsgType.OTHER, ""));
+                    MESSAGE.sendNewMessage(handler, NEW_MSG);
+                    serverSocket.close();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+                receiverThread = new Thread(new Receiver());
+                receiverThread.start();
             }
-        }).start();
+        }
+    }
+
+    private class Sender implements Runnable{
+        JSONObject inputJson;
+
+        public Sender(JSONObject inputJson) {
+            this.inputJson = inputJson;
+        }
+
+        @Override
+        public void run() {
+            try {
+                senderSocket = new Socket(oppositeIp, 2345);
+                BufferedWriter bfw = new BufferedWriter(new OutputStreamWriter(senderSocket.getOutputStream()));
+                BufferedReader bfr = new BufferedReader(new InputStreamReader(senderSocket.getInputStream()));
+                bfw.write(inputJson.getString("info") + "\n");
+                bfw.flush();
+                senderSocket.close();
+            }
+            catch (Exception e) {
+                e.printStackTrace();
+                new Thread(new Sender(inputJson)).start();
+            }
+        }
+    }
+
+    @Override
+    public void onBackPressed() {
+        try {
+            senderThread.interrupt();
+            receiverThread.interrupt();
+            senderThread.stop();
+            receiverThread.stop();
+            senderSocket.close();
+            senderSocket.shutdownInput();
+            senderSocket.shutdownOutput();
+            serverSocket.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        finish();
     }
 
     public void initChattingInfo() {

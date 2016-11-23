@@ -32,11 +32,11 @@ import java.util.List;
 public class MainActivity extends AppCompatActivity {
 
     final int UPDATE_LIST = 1;
-    ListView contractsList;
-    List<Contact> contacts = new ArrayList<>();
-    SearchView searchView;
-    WifiManager wifiManager;
-    TextView localIPText;
+    private ListView contractsList;
+    private List<Contact> contacts = new ArrayList<>();
+    private SearchView searchView;
+    private WifiManager wifiManager;
+    private TextView localIPText;
 
     MySQLiteOpenHelper mySQLiteOpenHelper;
 //    SQLiteDatabase sqLiteDatabase;
@@ -164,7 +164,7 @@ public class MainActivity extends AppCompatActivity {
 //        getIps.PingAll().run();
 //        HashSet<String> hashSet = new HashSet<>();
 //        hashSet.addAll(getIps.result);
-        for(String ipAddr : getIps.result) {
+        for(String ipAddr : getIps.ping) {
             contacts.add(new Contact(ipAddr, "", "", R.drawable.head));
         }
         System.out.println("result: " + getIps.result.size());
@@ -231,6 +231,11 @@ public class MainActivity extends AppCompatActivity {
         WifiInfo wifiInfo = wifiManager.getConnectionInfo();
         int ipAddress = wifiInfo.getIpAddress();
         return intToIp(ipAddress);
+    }
+
+    @Override
+    public void onBackPressed() {
+        finish();
     }
 
     private String intToIp(int i) {

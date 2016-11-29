@@ -39,6 +39,24 @@
             android:layout_gravity="bottom"
             android:background="@color/white">
 
+            <Button
+                android:id="@+id/changeModButton"
+                android:text="语音"
+                android:layout_weight="1"
+                android:layout_width="0dp"
+                android:layout_height="50dp"
+                android:background="@color/gray"
+                android:textColor="@color/black"
+                android:layout_gravity="bottom"/>
+
+            <Button
+                android:id="@+id/inputVoiceButton"
+                android:layout_width="wrap_content"
+                android:layout_height="50dp"
+                android:layout_weight="5"
+                android:hint="按住说话"
+                android:visibility="gone"/>
+
             <EditText
                 android:id="@+id/inputMsgText"
                 android:layout_weight="4"
@@ -47,7 +65,8 @@
                 android:layout_marginLeft="15dp"
                 android:layout_marginRight="15dp"
                 android:layout_gravity="center"
-                android:background="@color/white"/>
+                android:background="@color/white"
+                android:visibility="visible"/>
 
             <Button
                 android:id="@+id/sendMsgButton"
@@ -57,7 +76,8 @@
                 android:layout_height="50dp"
                 android:background="@color/gray"
                 android:textColor="@color/white"
-                android:layout_gravity="bottom"/>
+                android:layout_gravity="bottom"
+                android:visibility="visible"/>
         </LinearLayout>
 
     </FrameLayout>

@@ -13,6 +13,7 @@ import android.os.Bundle;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -22,7 +23,7 @@ import com.codemine.talk2me.bluetoothchat.Constants;
 import static com.codemine.talk2me.MESSAGE.NEW_MSG;
 
 public class BluetoothVoiceActivity extends AppCompatActivity {
-    Button recordButton;
+    ImageButton recordButton;
     //audio
     int frequency = 10000;
     int channelConfiguration = AudioFormat.CHANNEL_IN_DEFAULT;
@@ -91,18 +92,18 @@ public class BluetoothVoiceActivity extends AppCompatActivity {
             }
         });
 
-        recordButton = (Button) findViewById(R.id.record_voice_button);
+        recordButton = (ImageButton) findViewById(R.id.record_button);
         //录音按钮添加长按事件
         recordButton.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View view, MotionEvent motionEvent) {
                 switch (motionEvent.getAction()) {
                     case MotionEvent.ACTION_DOWN:
-                        recordButton.setBackgroundColor(Color.parseColor("#4EEE94"));
+                        recordButton.setBackgroundResource(R.drawable.start);
                         startSend();
                         break;
                     case MotionEvent.ACTION_UP:
-                        recordButton.setBackgroundColor(Color.parseColor("#EBEBEB"));
+                        recordButton.setBackgroundResource(R.drawable.stop);
                         stopSend();
                         break;
                 }

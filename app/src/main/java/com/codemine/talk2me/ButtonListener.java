@@ -13,7 +13,7 @@ public class ButtonListener implements DialogInterface.OnClickListener, View.OnT
 
     @Override
     public boolean onTouch(View view, MotionEvent motionEvent) {
-        if(view.getId() == R.id.record_voice_button) {
+        if(view.getId() == R.id.record_button) {
             if(motionEvent.getAction() == MotionEvent.ACTION_BUTTON_PRESS) {
                 view.setBackgroundColor(Color.RED);
             }

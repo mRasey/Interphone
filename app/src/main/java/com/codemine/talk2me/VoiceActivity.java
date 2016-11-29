@@ -11,6 +11,7 @@ import android.os.Bundle;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.TextView;
 
 import java.io.BufferedReader;
@@ -34,7 +35,7 @@ public class VoiceActivity extends AppCompatActivity {
 
     String myIp;
     String oppositeIp;
-    Button recordButton;
+    ImageButton recordButton;
     TextView connect_text;
 
     //audio
@@ -129,7 +130,7 @@ public class VoiceActivity extends AppCompatActivity {
             getSupportActionBar().hide();
         setContentView(R.layout.activity_voice);
 
-        ((TextView)findViewById(R.id.jump_to_voice_text)).setText("");
+        findViewById(R.id.jump_to_voice_img).setVisibility(View.GONE);
         ((TextView)findViewById(R.id.chattingWith)).setText(getIntent().getStringExtra("contactName"));
 
         connect_text = (TextView) findViewById(R.id.bluetoothConnect);
@@ -187,18 +188,18 @@ public class VoiceActivity extends AppCompatActivity {
             }
         });
 
-        recordButton = (Button) findViewById(R.id.record_voice_button);
+        recordButton = (ImageButton) findViewById(R.id.record_button);
         //录音按钮添加长按事件
         recordButton.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View view, MotionEvent motionEvent) {
                 switch (motionEvent.getAction()) {
                     case MotionEvent.ACTION_DOWN:
-                        recordButton.setBackgroundColor(Color.parseColor("#4EEE94"));
+                        recordButton.setBackgroundResource(R.drawable.start);
                         startSend();
                         break;
                     case MotionEvent.ACTION_UP:
-                        recordButton.setBackgroundColor(Color.parseColor("#EBEBEB"));
+                        recordButton.setBackgroundResource(R.drawable.stop);
                         stopSend();
                         break;
                 }

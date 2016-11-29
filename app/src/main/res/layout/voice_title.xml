@@ -3,7 +3,7 @@
     android:id="@+id/chatTitle"
     android:layout_width="match_parent"
     android:layout_height="60dp"
-    android:background="@color/orange">
+    android:background="@color/lightBlue">
 
     <TextView
         android:id="@+id/back_text"
@@ -24,7 +24,8 @@
         android:gravity="center"
         android:textSize="20dp"
         android:textColor="@color/white"
-        android:text="DEFAULT"/>
+        android:text="DEFAULT"
+        android:visibility="gone"/>
 
     <TextView
         android:id="@+id/jump_to_voice_text"

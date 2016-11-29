@@ -10,9 +10,11 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -35,6 +37,7 @@ public class ChatActivity extends AppCompatActivity {
     ArrayList<ChattingInfo> chattingInfos = new ArrayList<>();
     ListView chatList;
     EditText inputMsgText;
+    Button inputVoiceButton;
     Button sendMsgButton;
     TextView backText;
     TextView chattingWith;
@@ -44,6 +47,10 @@ public class ChatActivity extends AppCompatActivity {
     Socket senderSocket;
     Thread receiverThread;
     Thread senderThread;
+    ImageButton jumpToVoiceImg;
+    Button changeModeButton;
+    ChatMode chatMode = ChatMode.TEXT;
+    boolean isMultiCast;
 
     Handler handler = new Handler() {
         @Override
@@ -73,13 +80,65 @@ public class ChatActivity extends AppCompatActivity {
 
         chatList = (ListView) findViewById(R.id.chattingListView);
         inputMsgText = (EditText) findViewById(R.id.inputMsgText);
+        inputVoiceButton = (Button) findViewById(R.id.inputVoiceButton);
         sendMsgButton = (Button) findViewById(R.id.sendMsgButton);
         backText = (TextView) findViewById(R.id.back_text);
         chattingWith = (TextView) findViewById(R.id.chattingWith);
-        jumpToVoiceText = (TextView) findViewById(R.id.jump_to_voice_text);
+//        jumpToVoiceText = (TextView) findViewById(R.id.jump_to_voice_text);
+        jumpToVoiceImg = (ImageButton) findViewById(R.id.jump_to_voice_img);
+        changeModeButton = (Button) findViewById(R.id.changeModButton);//改变模式的按钮
+
+        changeModeButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if(chatMode == ChatMode.VOICE) {
+                    chatMode = ChatMode.TEXT;
+                    inputVoiceButton.setVisibility(View.GONE);
+                    inputMsgText.setVisibility(View.VISIBLE);
+                    sendMsgButton.setVisibility(View.VISIBLE);
+                    changeModeButton.setText("语音");
+                    inputMsgText.setHint("请输入......");
+                }
+                else {
+                    chatMode = ChatMode.VOICE;
+                    changeModeButton.setText("文字");
+                    inputVoiceButton.setVisibility(View.VISIBLE);
+                    inputVoiceButton.setBackgroundResource(R.color.white);
+                    inputMsgText.setVisibility(View.GONE);
+                    sendMsgButton.setVisibility(View.GONE);
+//                    inputMsgText.setEnabled(false);
+//                    inputMsgText.setText("");
+//                    inputMsgText.setHint("按住说话");
+//                    inputMsgText.setTextColor(Color.parseColor("#EBEBEB"));
+//                    changeModeButton.setText("文字");
+                }
+            }
+        });
+
+        inputVoiceButton.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                switch (event.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        inputVoiceButton.setBackgroundResource(R.color.deepGray);
+                        break;
+                    case MotionEvent.ACTION_UP:
+                        inputVoiceButton.setBackgroundResource(R.color.white);
+                        break;
+                    default:
+                        break;
+                }
+                return true;
+            }
+        });
 
         chattingWith.setText(getIntent().getStringExtra("contactName"));
         oppositeIp = getIntent().getStringExtra("contactName");
+        if(oppositeIp.equals("230.0.0.1")) {
+            isMultiCast = true;
+        } else {
+            isMultiCast = false;
+        }
 
         //点击返回主界面
         backText.setOnClickListener(new View.OnClickListener() {
@@ -102,7 +161,7 @@ public class ChatActivity extends AppCompatActivity {
         });
 
         //点击跳转到语音通话界面
-        jumpToVoiceText.setOnClickListener(new View.OnClickListener() {
+        jumpToVoiceImg.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 Intent intent = new Intent();
@@ -253,4 +312,9 @@ public class ChatActivity extends AppCompatActivity {
     public void initChattingInfo() {
 
     }
+}
+
+enum ChatMode {
+    TEXT,
+    VOICE
 }

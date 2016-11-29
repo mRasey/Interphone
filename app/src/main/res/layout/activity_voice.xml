@@ -26,22 +26,26 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center"
-            android:textSize="50dp" />
+            android:textColor="@color/black"
+            android:textSize="50dp"
+            android:hint="对方IP"/>
 
         <TextView
             android:id="@+id/my_ipAddr_text"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:textColor="@color/black"
             android:gravity="center"
-            android:textSize="50dp" />
+            android:textSize="50dp"
+            android:hint="己方IP"/>
 
-        <Button
-            android:id="@+id/record_voice_button"
+        <ImageButton
+            android:id="@+id/record_button"
             android:layout_width="100dp"
             android:layout_height="100dp"
+            android:layout_marginTop="150dp"
             android:layout_gravity="center"
-            android:layout_marginTop="200dp"
-            android:hint="录音"/>
+            android:background="@drawable/stop"/>
 
     </LinearLayout>
 

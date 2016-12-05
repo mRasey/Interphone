@@ -54,6 +54,7 @@ public class BluetoothActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         mChatService=((Data) getApplication()).getmChatService();
         mBtAdapter = BluetoothAdapter.getDefaultAdapter();
+        findViewById(R.id.local_ip_text).setVisibility(View.GONE);
 //        mySQLiteOpenHelper = new MySQLiteOpenHelper(this, "data.db", null, 1);//创建数据库
 //        sqLiteDatabase = mySQLiteOpenHelper.getWritableDatabase();
         if (mBtAdapter == null) {

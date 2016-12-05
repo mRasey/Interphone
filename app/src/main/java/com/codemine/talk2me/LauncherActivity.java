@@ -23,15 +23,15 @@ public class LauncherActivity extends AppCompatActivity {
         window.setFlags(flag, flag);
         setContentView(R.layout.activity_launcher);
 
-        startActivity(new Intent(LauncherActivity.this, LoginActivity.class));
-        finish();
+//        startActivity(new Intent(LauncherActivity.this, LoginActivity.class));
+//        finish();
 
-//        new Timer().schedule(new TimerTask() {
-//            @Override
-//            public void run() {
-//                startActivity(new Intent(LauncherActivity.this, LoginActivity.class));
-//                finish();
-//            }
-//        }, 2000);
+        new Timer().schedule(new TimerTask() {
+            @Override
+            public void run() {
+                startActivity(new Intent(LauncherActivity.this, LoginActivity.class));
+                finish();
+            }
+        }, 3000);
     }
 }

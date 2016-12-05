@@ -1,11 +1,17 @@
 package com.codemine.talk2me;
 
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
-import android.hardware.Sensor;
+import android.media.AudioFormat;
+import android.media.AudioManager;
+import android.media.AudioRecord;
+import android.media.AudioTrack;
+import android.media.MediaRecorder;
+import android.net.wifi.WifiInfo;
+import android.net.wifi.WifiManager;
 import android.os.Handler;
 import android.os.Message;
-import android.provider.CalendarContract;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.Editable;
@@ -17,17 +23,14 @@ import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ListView;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import org.json.JSONObject;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.net.ServerSocket;
-import java.net.Socket;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.net.MulticastSocket;
 import java.util.ArrayList;
 
 import static com.codemine.talk2me.MESSAGE.*;
@@ -41,16 +44,34 @@ public class ChatActivity extends AppCompatActivity {
     Button sendMsgButton;
     TextView backText;
     TextView chattingWith;
-    TextView jumpToVoiceText;
     String oppositeIp;
-    ServerSocket serverSocket;
-    Socket senderSocket;
-    Thread receiverThread;
-    Thread senderThread;
     ImageButton jumpToVoiceImg;
     Button changeModeButton;
     ChatMode chatMode = ChatMode.TEXT;
+    boolean isAlive = true;
+
+    final String multiCastIp = "239.6.7.8";
     boolean isMultiCast;
+    int textPort = 2345;
+
+    //audio
+    int frequency = 10000;
+    int channelConfiguration = AudioFormat.CHANNEL_IN_DEFAULT;
+    int audioEncoding = AudioFormat.ENCODING_PCM_16BIT;
+    int bufferSize = 160;
+    boolean isStop = false;
+    int voicePort = 2333;
+    AudioTrack audioTrack = new AudioTrack(
+            AudioManager.STREAM_MUSIC,
+            frequency,
+            channelConfiguration,
+            audioEncoding,
+            bufferSize*2,
+            AudioTrack.MODE_STREAM
+    );
+    AudioRecord audioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC,
+                                  frequency, channelConfiguration,
+                                  audioEncoding, bufferSize);
 
     Handler handler = new Handler() {
         @Override
@@ -68,15 +89,12 @@ public class ChatActivity extends AppCompatActivity {
         }
     };
 
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         if(getSupportActionBar() != null)
             getSupportActionBar().hide();
         setContentView(R.layout.activity_chat);
-
-        initChattingInfo();
 
         chatList = (ListView) findViewById(R.id.chattingListView);
         inputMsgText = (EditText) findViewById(R.id.inputMsgText);
@@ -120,9 +138,11 @@ public class ChatActivity extends AppCompatActivity {
             public boolean onTouch(View v, MotionEvent event) {
                 switch (event.getAction()) {
                     case MotionEvent.ACTION_DOWN:
+                        new Thread(new VoiceSender()).start();
                         inputVoiceButton.setBackgroundResource(R.color.deepGray);
                         break;
                     case MotionEvent.ACTION_UP:
+                        stopSend();
                         inputVoiceButton.setBackgroundResource(R.color.white);
                         break;
                     default:
@@ -134,28 +154,14 @@ public class ChatActivity extends AppCompatActivity {
 
         chattingWith.setText(getIntent().getStringExtra("contactName"));
         oppositeIp = getIntent().getStringExtra("contactName");
-        if(oppositeIp.equals("230.0.0.1")) {
-            isMultiCast = true;
-        } else {
-            isMultiCast = false;
-        }
+        isMultiCast = oppositeIp.equals(multiCastIp);
 
         //点击返回主界面
         backText.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                try {
-                    senderThread.interrupt();
-                    receiverThread.interrupt();
-                    senderThread.stop();
-                    receiverThread.stop();
-                    senderSocket.close();
-                    senderSocket.shutdownInput();
-                    senderSocket.shutdownOutput();
-                    serverSocket.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+                isAlive = false;
+                audioRecord.release();
                 finish();
             }
         });
@@ -210,8 +216,7 @@ public class ChatActivity extends AppCompatActivity {
                     try {
                         JSONObject jsonObject = new JSONObject();
                         jsonObject.put("info", msg);
-                        senderThread = new Thread(new Sender(jsonObject));
-                        senderThread.start();
+                        new Thread(new TextSender(jsonObject)).start();
                     }
                     catch (Exception e) {
                         e.printStackTrace();
@@ -222,95 +227,198 @@ public class ChatActivity extends AppCompatActivity {
         });
 
         //循环接收消息
-
-        Receiver receiver = new Receiver();
-        receiverThread = new Thread(receiver);
-        receiverThread.start();
-//        new Thread(new Runnable() {
-//            @Override
-//            public void run() {
-//                try {
-//                    while (true) {
-//                        ServerSocket serverSocket = new ServerSocket(2345);
-//                        Socket socket = serverSocket.accept();
-//                        BufferedReader bfr = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-//                        chattingInfos.add(new ChattingInfo(R.drawable.head, bfr.readLine(), MsgType.OTHER, ""));
-//                        MESSAGE.sendNewMessage(handler, NEW_MSG);
-//                        serverSocket.close();
-//                    }
-//                } catch (IOException e) {
-//                    e.printStackTrace();
-//                }
-//
-//            }
-//        }).start();
+        new Thread(new TextReceiver(),"textReceiver").start();
+        new Thread(new VoiceReceiver(),"voiceReceiver").start();
     }
 
-
-    private class Receiver implements Runnable {
+    private class TextReceiver implements Runnable {
 
         @Override
         public void run() {
             try {
-                while (true) {
-                    serverSocket = new ServerSocket(2345);
-                    Socket socket = serverSocket.accept();
-                    BufferedReader bfr = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                    chattingInfos.add(new ChattingInfo(R.drawable.head, bfr.readLine(), MsgType.OTHER, ""));
-                    MESSAGE.sendNewMessage(handler, NEW_MSG);
-                    serverSocket.close();
+                byte[] text_buffer = new byte[2<<5];
+                DatagramSocket datagramSocket;
+                InetAddress address = InetAddress.getByName(oppositeIp);
+                if(isMultiCast){
+                    datagramSocket = new MulticastSocket(textPort);
+                    ((MulticastSocket)datagramSocket).joinGroup(address);
+                } else {
+                    datagramSocket = new DatagramSocket(textPort);
                 }
+                DatagramPacket datagramPacket = new DatagramPacket(
+                        text_buffer,
+                        text_buffer.length,
+                        address,
+                        textPort);
+                while (isAlive) {
+                    datagramSocket.receive(datagramPacket);
+                    if(isMultiCast) {
+                        if (datagramPacket.getAddress().
+                                toString().substring(1).
+                                equals(getLocalIp())) {
+                            continue;
+                        }
+                    } else {
+                        if (!datagramPacket.getAddress().
+                                toString().substring(1).
+                                equals(oppositeIp)) {
+                            continue;
+                        }
+                    }
+                    chattingInfos.add(new ChattingInfo(R.drawable.head,new String(text_buffer), MsgType.OTHER, ""));
+                    MESSAGE.sendNewMessage(handler, NEW_MSG);
+                }
+                if(isMultiCast){
+                    ((MulticastSocket)datagramSocket).leaveGroup(address);
+                }
+                datagramSocket.close();
+
             } catch (IOException e) {
                 e.printStackTrace();
-                receiverThread = new Thread(new Receiver());
-                receiverThread.start();
+                new Thread(new TextReceiver(),"textReceiver").start();
             }
         }
     }
 
-    private class Sender implements Runnable{
+    private class TextSender implements Runnable{
         JSONObject inputJson;
 
-        public Sender(JSONObject inputJson) {
+        TextSender(JSONObject inputJson) {
             this.inputJson = inputJson;
         }
 
         @Override
         public void run() {
             try {
-                senderSocket = new Socket(oppositeIp, 2345);
-                BufferedWriter bfw = new BufferedWriter(new OutputStreamWriter(senderSocket.getOutputStream()));
-                BufferedReader bfr = new BufferedReader(new InputStreamReader(senderSocket.getInputStream()));
-                bfw.write(inputJson.getString("info") + "\n");
-                bfw.flush();
-                senderSocket.close();
+                byte[] text_buffer = new byte[2<<5];
+                DatagramSocket datagramSocket = new DatagramSocket();
+                InetAddress address = InetAddress.getByName(oppositeIp);
+                DatagramPacket datagramPacket = new DatagramPacket(
+                        text_buffer,
+                        text_buffer.length,
+                        address,
+                        textPort);
+
+                int i = 0;
+                for(byte b: inputJson.getString("info").getBytes()){
+                    text_buffer[i++] = b;
+                }
+                datagramSocket.send(datagramPacket);
+                datagramSocket.close();
             }
             catch (Exception e) {
                 e.printStackTrace();
-                new Thread(new Sender(inputJson)).start();
+                new Thread(new TextSender(inputJson)).start();
             }
         }
+    }
+
+    private class VoiceReceiver implements Runnable{
+        @Override
+        public void run() {
+            try {
+
+                byte[] record_buffer = new byte[bufferSize];
+                DatagramSocket datagramSocket;
+                InetAddress address = InetAddress.getByName(oppositeIp);
+                if(isMultiCast){
+                    datagramSocket = new MulticastSocket(voicePort);
+                    ((MulticastSocket)datagramSocket).joinGroup(address);
+                } else {
+                    datagramSocket = new DatagramSocket(voicePort);
+                }
+                DatagramPacket datagramPacket = new DatagramPacket(
+                        record_buffer,
+                        record_buffer.length,
+                        address,
+                        voicePort);
+                while (isAlive) {
+                    datagramSocket.receive(datagramPacket);
+                    if(isMultiCast) {
+                        if (datagramPacket.getAddress().
+                                toString().substring(1).
+                                equals(getLocalIp())) {
+                            continue;
+                        }
+                    } else {
+                        if (!datagramPacket.getAddress().
+                                toString().substring(1).
+                                equals(oppositeIp)) {
+                            continue;
+                        }
+                    }
+                    audioTrack.play();
+                    audioTrack.write(record_buffer,0,bufferSize);
+                    audioTrack.stop();
+                }
+                if(isMultiCast){
+                    ((MulticastSocket)datagramSocket).leaveGroup(address);
+                }
+                datagramSocket.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+                new Thread(new VoiceReceiver(),"voiceReceiver").start();
+            }
+
+        }
+    }
+
+    private class VoiceSender implements Runnable{
+
+        @Override
+        public void run() {
+
+            try {
+                byte[] record_buffer = new byte[bufferSize];
+                DatagramSocket datagramSocket = new DatagramSocket();
+                InetAddress address = InetAddress.getByName(oppositeIp);
+                DatagramPacket datagramPacket = new DatagramPacket(
+                        record_buffer,
+                        record_buffer.length,
+                        address,
+                        voicePort);
+                audioRecord.startRecording();
+                while(!isStop){
+                    audioRecord.read(record_buffer, 0, bufferSize);
+                    datagramSocket.send(datagramPacket);
+                }
+                audioRecord.stop();
+                isStop = false;
+                datagramSocket.close();
+            }catch (Exception e){
+                e.printStackTrace();
+            }
+        }
+    }
+    private void stopSend(){
+        isStop = true;
     }
 
     @Override
     public void onBackPressed() {
-        try {
-            senderThread.interrupt();
-            receiverThread.interrupt();
-            senderThread.stop();
-            receiverThread.stop();
-            senderSocket.close();
-            senderSocket.shutdownInput();
-            senderSocket.shutdownOutput();
-            serverSocket.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        isAlive = false;
+        audioRecord.release();
         finish();
     }
 
-    public void initChattingInfo() {
+    private String getLocalIp() {
+//        WifiManager wifiManager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
+        //判断wifi是否开启
+        WifiManager wifiManager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
+        if (!wifiManager.isWifiEnabled()) {
+            wifiManager.setWifiEnabled(true);
+        }
+        WifiInfo wifiInfo = wifiManager.getConnectionInfo();
+        int ipAddress = wifiInfo.getIpAddress();
+        return intToIp(ipAddress);
+    }
 
+    private String intToIp(int i) {
+
+        return (i & 0xFF ) + "." +
+                ((i >> 8 ) & 0xFF) + "." +
+                ((i >> 16 ) & 0xFF) + "." +
+                ( i >> 24 & 0xFF) ;
     }
 }
 

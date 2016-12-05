@@ -1,19 +1,24 @@
 package com.codemine.talk2me.bluetoothchat;
 
 
+import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
-import android.content.Context;
+import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.IBinder;
 import android.os.Message;
-import android.util.Log;
+
+import com.codemine.talk2me.BluetoothChatActivity;
+import com.codemine.talk2me.Task;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.UUID;
 
 /**
@@ -22,7 +27,7 @@ import java.util.UUID;
  * incoming connections, a thread for connecting with a device, and a
  * thread for performing data transmissions when connected.
  */
-public class BluetoothChatService {
+public class BluetoothChatService extends Service implements Runnable {
     // Debugging
     private static final String TAG = "BluetoothChatService";
 
@@ -37,19 +42,22 @@ public class BluetoothChatService {
             UUID.fromString("8ce255c0-200a-11e0-ac64-0800200c9a66");
 
     // Member fields
-    private final BluetoothAdapter mAdapter;
-    private Handler mHandler;
-    private AcceptThread mSecureAcceptThread;
-    private AcceptThread mInsecureAcceptThread;
-    private ConnectThread mConnectThread;
-    private ConnectedThread mConnectedThread;
-    private int mState;
+    public final static  BluetoothAdapter mAdapter=BluetoothAdapter.getDefaultAdapter();
+    private static Handler mHandler;
+    private static AcceptThread mSecureAcceptThread;
+    private static AcceptThread mInsecureAcceptThread;
+    private static ConnectThread mConnectThread;
+    private static ConnectedThread mConnectedThread;
+    private static int mState;
+    public static ArrayList<Task> allTask = new ArrayList<Task>();
+    public static boolean isrun = true;
 
     // Constants that indicate the current connection state
     public static final int STATE_NONE = 0;       // we're doing nothing
     public static final int STATE_LISTEN = 1;     // now listening for incoming connections
     public static final int STATE_CONNECTING = 2; // now initiating an outgoing connection
     public static final int STATE_CONNECTED = 3;  // now connected to a remote device
+    public static final int STATE_SEND_MESSAGE = 5; // 发送信息
 
     /**
      * Constructor. Prepares a new BluetoothChat session.
@@ -57,8 +65,7 @@ public class BluetoothChatService {
      *
      * @param handler A Handler to send messages back to the UI Activity
      */
-    public BluetoothChatService( Handler handler) {
-        mAdapter = BluetoothAdapter.getDefaultAdapter();
+    public BluetoothChatService(Handler handler) {
         mState = STATE_NONE;
         mHandler = handler;
     }
@@ -87,6 +94,71 @@ public class BluetoothChatService {
         return mState;
     }
 
+
+    /**
+     * 添加一个任务
+     * @param task
+     */
+    public static void newTask(Task task) {
+
+        allTask.add(task);
+    }
+
+    /**
+     * 执行任务的时候
+     */
+    @Override
+    public void run() {
+        while (isrun == true) {
+
+            Task lastTask = null;
+            synchronized (allTask) {
+                if (allTask.size() > 0) {
+                    lastTask = allTask.get(0);
+                    doTask(lastTask);
+                }
+            }
+            try {
+                Thread.sleep(1000);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
+    @Override
+    public void onCreate() {
+        System.out.println("DSADdadasd");
+        super.onCreate();
+        isrun = true;
+        Thread t = new Thread(this);
+        t.start();
+    }
+
+    /**
+     * 执行任务
+     * @param task
+     */
+    public void doTask(Task task) {
+        try {
+            switch (task.getTaskID()) {
+                // TASK_DETECT_DEVICE必须用final
+                case Task.TASK_SEND_MESSAGE://发送文字或表情
+                    write((byte[]) task.getTaskParam().get(BluetoothChatService.STATE_SEND_MESSAGE));
+                    break;
+                case Task.TASK_CONECT_DEVICE: //链接远程设备
+                    System.out.println("连接设备！"+((BluetoothDevice) task.getTaskParam().get("device")).toString()+(Boolean) task.getTaskParam().get("secure"));
+                    mHandler = (Handler)task.getTaskParam().get("mHandler");
+                    connect((BluetoothDevice) task.getTaskParam().get("device"),(Boolean) task.getTaskParam().get("secure"));
+                    break;
+
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        allTask.remove(task);// 执行完销毁
+    }
+
+
     /**
      * Start the chat service. Specifically start AcceptThread to begin a
      * session in listening (server) mode. Called by the Activity onResume()
@@ -113,10 +185,10 @@ public class BluetoothChatService {
             mSecureAcceptThread = new AcceptThread(true);
             mSecureAcceptThread.start();
         }
-        if (mInsecureAcceptThread == null) {
-            mInsecureAcceptThread = new AcceptThread(false);
-            mInsecureAcceptThread.start();
-        }
+//        if (mInsecureAcceptThread == null) {
+//            mInsecureAcceptThread = new AcceptThread(false);
+//            mInsecureAcceptThread.start();
+//        }
     }
 
     /**
@@ -279,7 +351,7 @@ public class BluetoothChatService {
         // The local server socket
         private final BluetoothServerSocket mmServerSocket;
         private String mSocketType;
-
+        BluetoothSocket socket = null;
         public AcceptThread(boolean secure) {
             BluetoothServerSocket tmp = null;
             mSocketType = secure ? "Secure" : "Insecure";
@@ -303,7 +375,7 @@ public class BluetoothChatService {
 
             setName("AcceptThread" + mSocketType);
 
-            BluetoothSocket socket = null;
+
 
             // Listen to the server socket if we're not connected
             while (mState != STATE_CONNECTED) {
@@ -456,18 +528,20 @@ public class BluetoothChatService {
 
         public void run() {
 
-            byte[] buffer = new byte[1024];
+            Integer lenght;
+            byte[] msgByte = new byte[128*1024];
             int bytes;
-
-            // Keep listening to the InputStream while connected
-            while (mState == STATE_CONNECTED) {
+            // 当连接后保持监听输入流
+            while (true) {
                 try {
-                    // Read from the InputStream
-                    bytes = mmInStream.read(buffer);
-                    Log.d("read","read successful");
-                    // Send the obtained bytes to the UI Activity
-                    mHandler.obtainMessage(Constants.MESSAGE_READ, bytes, -1, buffer)
+                    if(mmInStream!=null) {
+                        bytes =mmInStream.read(msgByte);
+                        writebyte(msgByte,"handler read");
+//                        mHandler.obtainMessage(ChattingActivity.MESSAGE_READ, 0, -1, new String(msgByte)).sendToTarget();
+                        mHandler.obtainMessage(Constants.MESSAGE_READ, bytes, -1, msgByte)
                             .sendToTarget();
+
+                    }
                 } catch (IOException e) {
                     e.printStackTrace();
                     connectionLost();
@@ -497,10 +571,22 @@ public class BluetoothChatService {
 
         public void cancel() {
             try {
+                mmOutStream.close();
+                mmInStream.close();
                 mmSocket.close();
             } catch (IOException e) {
                 e.printStackTrace();
             }
         }
+    }
+    public void writebyte(byte[] buffer, String message){
+        System.out.println(message);
+
+        for(byte b: buffer)
+            System.out.print(b);
+        System.out.println("23333333333");
+    }
+    public IBinder onBind(Intent intent) {
+        return null;
     }
 }

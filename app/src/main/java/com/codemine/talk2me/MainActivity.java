@@ -164,8 +164,9 @@ public class MainActivity extends AppCompatActivity {
 //        getIps.PingAll().run();
 //        HashSet<String> hashSet = new HashSet<>();
 //        hashSet.addAll(getIps.result);
+        contacts.add(new Contact("239.6.7.8", "组播", "", R.drawable.zubo));
         for(String ipAddr : getIps.ping) {
-            contacts.add(new Contact(ipAddr, "", "", R.drawable.head));
+            contacts.add(new Contact(ipAddr, "单播", "", R.drawable.head));
         }
         System.out.println("result: " + getIps.result.size());
 
